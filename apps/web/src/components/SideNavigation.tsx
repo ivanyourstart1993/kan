@@ -106,6 +106,18 @@ export default function SideNavigation({
       },
     },
     {
+      name: "Чат проекта",
+      href: "/chat",
+      icon: isDarkMode ? templatesIconDark : templatesIconLight,
+      keyboardShortcut: {
+        type: "SEQUENCE",
+        strokes: [{ key: "G" }, { key: "C" }],
+        action: () => router.push("/chat"),
+        group: "NAVIGATION",
+        description: "Go to project chat",
+      },
+    },
+    {
       name: t`Templates`,
       href: "/templates",
       icon: isDarkMode ? templatesIconDark : templatesIconLight,

@@ -9,9 +9,34 @@ import { generateUID } from "@kan/shared/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { assertPermission } from "../utils/permissions";
 
+const chatMessageSchema = z.object({
+  publicId: z.string(),
+  content: z.string(),
+  createdAt: z.date(),
+  user: z
+    .object({
+      id: z.string(),
+      name: z.string().nullable(),
+      email: z.string(),
+      image: z.string().nullable(),
+    })
+    .nullable(),
+});
+
 export const chatRouter = createTRPCRouter({
   list: protectedProcedure
+    .meta({
+      openapi: {
+        summary: "List chat messages",
+        method: "GET",
+        path: "/workspaces/{workspacePublicId}/chat",
+        description: "Lists chat messages for a workspace (project)",
+        tags: ["Chat"],
+        protect: true,
+      },
+    })
     .input(z.object({ workspacePublicId: z.string().min(12) }))
+    .output(z.array(chatMessageSchema))
     .query(async ({ ctx, input }) => {
       const userId = ctx.user?.id;
       if (!userId)
@@ -47,12 +72,23 @@ export const chatRouter = createTRPCRouter({
       return messages.reverse();
     }),
   send: protectedProcedure
+    .meta({
+      openapi: {
+        summary: "Send a chat message",
+        method: "POST",
+        path: "/workspaces/{workspacePublicId}/chat",
+        description: "Sends a chat message to a workspace (project)",
+        tags: ["Chat"],
+        protect: true,
+      },
+    })
     .input(
       z.object({
         workspacePublicId: z.string().min(12),
         content: z.string().min(1).max(4000),
       }),
     )
+    .output(z.object({ success: z.boolean(), publicId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.user?.id;
       if (!userId)
@@ -83,6 +119,12 @@ export const chatRouter = createTRPCRouter({
         })
         .returning({ publicId: chatMessages.publicId });
 
-      return { success: true, publicId: result?.publicId };
+      if (!result)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to send message",
+        });
+
+      return { success: true, publicId: result.publicId };
     }),
 });

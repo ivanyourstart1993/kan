@@ -118,6 +118,18 @@ export default function SideNavigation({
       },
     },
     {
+      name: "AI-агенты",
+      href: "/agents",
+      icon: isDarkMode ? membersIconDark : membersIconLight,
+      keyboardShortcut: {
+        type: "SEQUENCE",
+        strokes: [{ key: "G" }, { key: "A" }],
+        action: () => router.push("/agents"),
+        group: "NAVIGATION",
+        description: "Go to AI agents",
+      },
+    },
+    {
       name: t`Templates`,
       href: "/templates",
       icon: isDarkMode ? templatesIconDark : templatesIconLight,

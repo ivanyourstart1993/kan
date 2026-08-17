@@ -1,3 +1,4 @@
+import { agentRouter } from "./routers/agent";
 import { attachmentRouter } from "./routers/attachment";
 import { boardRouter } from "./routers/board";
 import { cardRouter } from "./routers/card";
@@ -17,6 +18,7 @@ import { workspaceRouter } from "./routers/workspace";
 import { createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
+  agent: agentRouter,
   attachment: attachmentRouter,
   board: boardRouter,
   card: cardRouter,

@@ -106,7 +106,7 @@ export function BoardsList({ isTemplate, archived = false }: { isTemplate?: bool
           }}
         >
           <Link
-            href={`${isTemplate ? "templates" : "boards"}/${board.publicId}`}
+            href={`/${isTemplate ? "templates" : "boards"}/${board.publicId}`}
           >
             <div className="group relative mr-5 flex h-[150px] w-full items-center justify-center rounded-md border border-dashed border-light-400 bg-light-50 shadow-sm hover:bg-light-200 dark:border-dark-600 dark:bg-dark-50 dark:hover:bg-dark-100">
               <PatternedBackground />

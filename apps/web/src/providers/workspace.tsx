@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { api } from "~/utils/api";
@@ -52,6 +52,35 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
 
   const workspacePublicId = useSearchParams().get("workspacePublicId");
 
+  // Reserved first-path segments that are app routes, not workspace slugs.
+  const RESERVED_SEGMENTS = [
+    "boards",
+    "chat",
+    "agents",
+    "members",
+    "templates",
+    "settings",
+    "cards",
+    "login",
+    "signup",
+    "onboarding",
+    "invite",
+    "upgrade",
+    "pricing",
+    "privacy",
+    "terms",
+    "partner",
+    "oss-friends",
+    "unsubscribe",
+    "api",
+  ];
+  const pathname = usePathname();
+  const firstSegment = pathname?.split("/")[1] ?? "";
+  const urlWorkspaceSlug =
+    firstSegment && !RESERVED_SEGMENTS.includes(firstSegment)
+      ? firstSegment
+      : null;
+
   const [pendingWorkspaceId, setPendingWorkspaceId] = useState<string | null>(
     workspacePublicId,
   );
@@ -74,7 +103,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
     // Refetch workspace data to ensure availableWorkspaces is up to date
     void utils.workspace.all.refetch();
 
-    router.push(`/boards`);
+    router.push(_workspace.slug ? `/${_workspace.slug}/boards` : `/boards`);
   };
 
   useEffect(() => {
@@ -100,6 +129,31 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
       })) as Workspace[];
 
       if (workspaces.length) setAvailableWorkspaces(workspaces);
+    }
+
+    // If the URL carries a workspace slug (e.g. /reme/boards), select that
+    // workspace from the slug and do not redirect.
+    if (urlWorkspaceSlug) {
+      const bySlug = data.find(
+        ({ workspace }) => workspace.slug === urlWorkspaceSlug,
+      );
+      if (bySlug?.workspace) {
+        pollAttemptsRef.current = 0;
+        setPendingWorkspaceId(null);
+        localStorage.setItem("workspacePublicId", bySlug.workspace.publicId);
+        setWorkspace({
+          publicId: bySlug.workspace.publicId,
+          name: bySlug.workspace.name,
+          slug: bySlug.workspace.slug,
+          plan: bySlug.workspace.plan,
+          description: bySlug.workspace.description,
+          role: bySlug.role as "admin" | "member" | "guest",
+          weekStartDay: bySlug.workspace.weekStartDay as 0 | 1 | 6,
+          cardPrefix: bySlug.workspace.cardPrefix,
+        });
+        setHasLoaded(true);
+        return;
+      }
     }
 
     if (storedWorkspaceId !== null) {
@@ -166,6 +220,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({
     isLoading,
     isFetching,
     workspacePublicId,
+    urlWorkspaceSlug,
     pendingWorkspaceId,
     router,
   ]);

@@ -1,4 +1,4 @@
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { t } from "@lingui/core/macro";
 import { env } from "next-runtime-env";
 import { useTheme } from "next-themes";
@@ -49,10 +49,21 @@ export default function Dashboard({
 }: DashboardProps) {
   const { resolvedTheme } = useTheme();
   const { openModal, closeModal, modalContentType } = useModal();
-  const { availableWorkspaces, hasLoaded } = useWorkspace();
+  const { availableWorkspaces, hasLoaded, workspace } = useWorkspace();
   const { showPopup } = usePopup();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // Redirect the legacy shared routes (/boards, /chat, /agents) to the
+  // per-project (workspace slug) URL so every project has its own address.
+  useEffect(() => {
+    if (!workspace.slug) return;
+    const bareProjectRoutes = ["/boards", "/chat", "/agents"];
+    if (pathname && bareProjectRoutes.includes(pathname)) {
+      router.replace(`/${workspace.slug}${pathname}`);
+    }
+  }, [workspace.slug, pathname, router]);
 
   const { data: session, isPending: sessionLoading } = authClient.useSession();
   const { data: user, isLoading: userLoading } = api.user.getUser.useQuery(

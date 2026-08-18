@@ -87,6 +87,9 @@ export default function SideNavigation({
 
   const isDarkMode = resolvedTheme === "dark";
 
+  // Per-project (workspace slug) URL prefix, e.g. "/reme".
+  const wsPrefix = workspace.slug ? `/${workspace.slug}` : "";
+
   const navigation: {
     name: string;
     href: string;
@@ -95,36 +98,36 @@ export default function SideNavigation({
   }[] = [
     {
       name: t`Boards`,
-      href: "/boards",
+      href: `${wsPrefix}/boards`,
       icon: isDarkMode ? boardsIconDark : boardsIconLight,
       keyboardShortcut: {
         type: "SEQUENCE",
         strokes: [{ key: "G" }, { key: "B" }],
-        action: () => router.push("/boards"),
+        action: () => router.push(`${wsPrefix}/boards`),
         group: "NAVIGATION",
         description: t`Go to boards`,
       },
     },
     {
       name: "Чат проекта",
-      href: "/chat",
+      href: `${wsPrefix}/chat`,
       icon: isDarkMode ? templatesIconDark : templatesIconLight,
       keyboardShortcut: {
         type: "SEQUENCE",
         strokes: [{ key: "G" }, { key: "C" }],
-        action: () => router.push("/chat"),
+        action: () => router.push(`${wsPrefix}/chat`),
         group: "NAVIGATION",
         description: "Go to project chat",
       },
     },
     {
       name: "AI-агенты",
-      href: "/agents",
+      href: `${wsPrefix}/agents`,
       icon: isDarkMode ? membersIconDark : membersIconLight,
       keyboardShortcut: {
         type: "SEQUENCE",
         strokes: [{ key: "G" }, { key: "A" }],
-        action: () => router.push("/agents"),
+        action: () => router.push(`${wsPrefix}/agents`),
         group: "NAVIGATION",
         description: "Go to AI agents",
       },

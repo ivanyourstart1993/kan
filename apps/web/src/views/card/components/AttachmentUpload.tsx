@@ -16,56 +16,91 @@ export function AttachmentUpload({ cardPublicId }: { cardPublicId: string }) {
   const { showPopup } = usePopup();
   const utils = api.useUtils();
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number }>({
+    current: 0,
+    total: 0,
+  });
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const uploadFile = async (file: File) => {
-    setUploading(true);
-
-    try {
-      const baseUrl = env("NEXT_PUBLIC_BASE_URL") ?? "";
-      const response = await fetch(
-        `${baseUrl}/api/upload/attachment?cardPublicId=${encodeURIComponent(cardPublicId)}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": file.type,
-            "x-original-filename": encodeURIComponent(file.name),
-          },
-          body: file,
+  const uploadOne = async (file: File) => {
+    const baseUrl = env("NEXT_PUBLIC_BASE_URL") ?? "";
+    const response = await fetch(
+      `${baseUrl}/api/upload/attachment?cardPublicId=${encodeURIComponent(cardPublicId)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type,
+          "x-original-filename": encodeURIComponent(file.name),
         },
-      );
+        body: file,
+      },
+    );
 
-      if (!response.ok) {
-        throw new Error("Upload failed");
+    if (!response.ok) {
+      throw new Error("Upload failed");
+    }
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return;
+
+    setUploading(true);
+    setProgress({ current: 0, total: files.length });
+
+    let succeeded = 0;
+    let failed = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file) continue;
+      setProgress({ current: i + 1, total: files.length });
+      try {
+        await uploadOne(file);
+        succeeded += 1;
+      } catch {
+        failed += 1;
       }
+    }
 
-      await invalidateCard(utils, cardPublicId);
+    await invalidateCard(utils, cardPublicId);
+
+    setUploading(false);
+    setProgress({ current: 0, total: 0 });
+
+    if (failed === 0) {
       showPopup({
         header: t`Attachment uploaded`,
-        message: t`Your file has been uploaded successfully.`,
+        message:
+          succeeded === 1
+            ? t`Your file has been uploaded successfully.`
+            : t`${succeeded} files have been uploaded successfully.`,
         icon: "success",
       });
-    } catch {
+    } else if (succeeded === 0) {
       showPopup({
         header: t`Upload failed`,
         message: t`Failed to upload attachment. Please try again.`,
         icon: "error",
       });
-      setUploading(false);
+    } else {
+      showPopup({
+        header: t`Some attachments failed`,
+        message: t`${succeeded} uploaded, ${failed} failed. Please try again.`,
+        icon: "error",
+      });
     }
   };
 
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files ?? []);
 
-    // Reset input
+    // Reset input so selecting the same files again re-triggers change
     event.target.value = "";
 
-    await uploadFile(file);
+    await uploadFiles(files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -90,10 +125,7 @@ export function AttachmentUpload({ cardPublicId }: { cardPublicId: string }) {
     if (uploading) return;
 
     const files = Array.from(e.dataTransfer.files);
-    if (files.length === 0) return;
-
-    // Upload the first file (or could upload all files)
-    await uploadFile(files[0] ?? new File([], ""));
+    await uploadFiles(files);
   };
 
   return (
@@ -101,6 +133,7 @@ export function AttachmentUpload({ cardPublicId }: { cardPublicId: string }) {
       <input
         ref={inputRef}
         type="file"
+        multiple
         id="attachment-upload"
         className="hidden"
         onChange={handleFileSelect}
@@ -128,18 +161,25 @@ export function AttachmentUpload({ cardPublicId }: { cardPublicId: string }) {
             size="sm"
             onClick={() => openModal("ADD_CHECKLIST")}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            iconLeft={
-              <HiOutlinePaperClip className="h-4 w-4 text-light-950 dark:text-dark-950" />
-            }
-            isLoading={uploading}
-            disabled={uploading}
-            iconOnly
-            size="sm"
-            onClick={() => inputRef.current?.click()}
-          />
+          <div className="flex items-center gap-2">
+            {uploading && progress.total > 1 && (
+              <span className="text-xs text-light-900 dark:text-dark-900">
+                {progress.current}/{progress.total}
+              </span>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              iconLeft={
+                <HiOutlinePaperClip className="h-4 w-4 text-light-950 dark:text-dark-950" />
+              }
+              isLoading={uploading}
+              disabled={uploading}
+              iconOnly
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+            />
+          </div>
         </div>
       </div>
     </div>
